@@ -76,7 +76,9 @@ var game = (() => {
     var coinMaterial: Physijs.Material;
 
     var coins: Physijs.ConcaveMesh[];
+    var stones: Physijs.ConcaveMesh[];
     var cointCount: number = 10;
+    var stoneCount:number=4;
     
     var deathPlaneGeometry: CubeGeometry;
     var deathPlaneMaterial: Physijs.Material;
@@ -94,8 +96,8 @@ var game = (() => {
 
     var manifest = [
         { id: "land", src: "../../Assets/audio/Land.wav" },
-        { id: "hit", src: "../../Assets/audio/hit.wav" },
-        { id: "coin", src: "../../Assets/audio/coin.mp3" },
+        { id: "hit", src: "../../Assets/audio/destray.wav" },
+        { id: "coin", src: "../../Assets/audio/pickupcoin.wav" },
         { id: "jump", src: "../../Assets/audio/Jump.wav" }
     ];
 
@@ -126,7 +128,7 @@ var game = (() => {
             "#ffffff"
         );
         livesLabel.x = config.Screen.WIDTH * 0.1;
-        livesLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        livesLabel.y = (config.Screen.HEIGHT * 0.20) * 0.11;
         stage.addChild(livesLabel);
         console.log("Added Lives Label to stage");
 
@@ -137,7 +139,7 @@ var game = (() => {
             "#ffffff"
         );
         scoreLabel.x = config.Screen.WIDTH * 0.8;
-        scoreLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        scoreLabel.y = (config.Screen.HEIGHT * 0.20) * 0.11;
         stage.addChild(scoreLabel);
         console.log("Added Score Label to stage");
     }
@@ -246,19 +248,22 @@ var game = (() => {
         console.log("Added Burnt Ground to scene");
 
         // Player Object
-        playerGeometry = new BoxGeometry(2, 4, 2);
+           
+        playerGeometry = new BoxGeometry(2, .5, 2);
         playerMaterial = Physijs.createMaterial(new LambertMaterial({ color: 0x00ff00 }), 0.4, 0);
 
         player = new Physijs.BoxMesh(playerGeometry, playerMaterial, 1);
-        player.position.set(0, 30, 10);
+        player.position.set(0, 7, 10);
         player.receiveShadow = true;
         player.castShadow = true;
         player.name = "Player";
+       
         scene.add(player);
         console.log("Added Player to Scene");
 
         // Add custom coin imported from Blender
         addCoinMesh();
+        addStoneMesh();
 
         addDeathPlane();
 
@@ -281,34 +286,56 @@ var game = (() => {
                 livesValue--;
                 livesLabel.text = "LIVES: " + livesValue;
                 scene.remove(player);
-                player.position.set(0, 30, 10);
+                player.position.set(0, 7, 10);
+                scene.add(player);
+            }
+            
+             if(eventObject.name === "Stone") {
+                createjs.Sound.play("hit");
+                livesValue--;
+                livesLabel.text = "LIVES: " + livesValue;
+                scene.remove(player);
+                player.position.set(0, 7, 10);
                 scene.add(player);
             }
         });
+        
+       ground.addEventListener('collision',(eventObject)=>{
+           
+             if (eventObject.name === "Coin") {
+               
+                scene.remove(eventObject);
+                setCoinPosition(eventObject);
+                
+            }
+            
+               if (eventObject.name === "Stone") {
+               
+                scene.remove(eventObject);
+                setStonePosition(eventObject);
+                
+            }
+       });
+       
+         deathPlane.addEventListener('collision',(eventObject)=>{
+           
+             if (eventObject.name === "Coin") {
+               
+                scene.remove(eventObject);
+                setCoinPosition(eventObject);
+                
+            }
+            
+               if (eventObject.name === "Stone") {
+               
+                scene.remove(eventObject);
+                setStonePosition(eventObject);
+                
+            }
+       });
 
-        // Add DirectionLine
-        directionLineMaterial = new LineBasicMaterial({ color: 0xffff00 });
-        directionLineGeometry = new Geometry();
-        directionLineGeometry.vertices.push(new Vector3(0, 0, 0)); // line origin
-        directionLineGeometry.vertices.push(new Vector3(0, 0, -50)); // end of the line
-        directionLine = new Line(directionLineGeometry, directionLineMaterial);
-        player.add(directionLine);
-        console.log("Added DirectionLine to the Player");
 
-        // create parent-child relationship with camera and player
-        player.add(camera);
-        camera.position.set(0, 1, 0);
-
-        // Sphere Object
-        sphereGeometry = new SphereGeometry(2, 32, 32);
-        sphereMaterial = Physijs.createMaterial(new LambertMaterial({ color: 0x00ff00 }), 0.4, 0);
-        sphere = new Physijs.SphereMesh(sphereGeometry, sphereMaterial, 1);
-        sphere.position.set(0, 60, 5);
-        sphere.receiveShadow = true;
-        sphere.castShadow = true;
-        sphere.name = "Sphere";
-        //scene.add(sphere);
-        //console.log("Added Sphere to Scene");
+     
 
         // Add framerate stats
         addStatsObject();
@@ -353,14 +380,15 @@ var game = (() => {
         
         coins = new Array<Physijs.ConvexMesh>(); // Instantiate a convex mesh array
 
-        var coinLoader = new THREE.JSONLoader().load("../../Assets/imported/coin.json", function(geometry: THREE.Geometry) {
-            var phongMaterial = new PhongMaterial({ color: 0xE7AB32 });
-            phongMaterial.emissive = new THREE.Color(0xE7AB32);
+        var coinLoader = new THREE.JSONLoader().load("../../Assets/imported/diamond.json", function(geometry: THREE.Geometry) {
+            var phongMaterial = new PhongMaterial({ color: 0xFFD700 });
+            phongMaterial.emissive = new THREE.Color(0xFFD700);
             
-            var coinMaterial = Physijs.createMaterial((phongMaterial), 0.4, 0.6);
+            var coinMaterial = Physijs.createMaterial((phongMaterial), 1, 0.6);
+            //var material =Physijs.createMaterial((phongMaterial))
             
             for(var count:number = 0; count < cointCount; count++) {
-                coins[count] = new Physijs.ConvexMesh(geometry, coinMaterial);     
+                coins[count] = new Physijs.ConvexMesh(geometry, coinMaterial,0.5);     
                 coins[count].receiveShadow = true;
                 coins[count].castShadow = true;
                 coins[count].name = "Coin";
@@ -375,16 +403,51 @@ var game = (() => {
     function setCoinPosition(coin:Physijs.ConvexMesh): void {
         var randomPointX: number = Math.floor(Math.random() * 20) - 10;
         var randomPointZ: number = Math.floor(Math.random() * 20) - 10;
-        coin.position.set(randomPointX, 10, randomPointZ);
+        var randomPointy: number = Math.floor(Math.random() * 30) + 30;
+        coin.position.set(randomPointX, randomPointy, randomPointZ);
         scene.add(coin);
     }
+    
+    // Add the Stone to the scene
+    function addStoneMesh(): void {
+        
+        stones = new Array<Physijs.ConvexMesh>(); // Instantiate a convex mesh array
+
+        var stoneLoader = new THREE.JSONLoader().load("../../Assets/imported/stone.json", function(geometry: THREE.Geometry) {
+            var phongMaterial = new PhongMaterial({ color:0x736F6E });
+            phongMaterial.emissive = new THREE.Color(0x736F6E);
+            
+            var stoneMaterial = Physijs.createMaterial((phongMaterial), 0.4, 0.6);
+            
+            for(var count:number = 0; count < stoneCount; count++) {
+                stones[count] = new Physijs.ConvexMesh(geometry, stoneMaterial);     
+                stones[count].receiveShadow = true;
+                stones[count].castShadow = true;
+               stones[count].name = "Stone";
+                setStonePosition(stones[count]);
+            }
+        });
+
+        console.log("Added Stone Mesh to Scene");
+    }
+
+    // Set Stone Position
+    function setStonePosition(stone:Physijs.ConvexMesh): void {
+        var randomPointX: number = Math.floor(Math.random() * 20) - 10;
+        var randomPointZ: number = Math.floor(Math.random() * 20) - 10;
+        var randomPointy: number = Math.floor(Math.random() * 60) + 30;
+        stone.position.set(randomPointX, randomPointy, randomPointZ);
+        scene.add(stone);
+    }
+    
 
     //PointerLockChange Event Handler
     function pointerLockChange(event): void {
         if (document.pointerLockElement === element) {
             // enable our mouse and keyboard controls
             keyboardControls.enabled = true;
-            mouseControls.enabled = true;
+           // mouseControls.enabled = true;
+           mouseControls.enabled = false;
             blocker.style.display = 'none';
         } else {
             // disable our mouse and keyboard controls
@@ -412,9 +475,9 @@ var game = (() => {
 
         canvas.style.width = "100%";
         livesLabel.x = config.Screen.WIDTH * 0.1;
-        livesLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        livesLabel.y = (config.Screen.HEIGHT * 0.20) * 0.11;
         scoreLabel.x = config.Screen.WIDTH * 0.8;
-        scoreLabel.y = (config.Screen.HEIGHT * 0.15) * 0.20;
+        scoreLabel.y = (config.Screen.HEIGHT * 0.20) * 0.11;
         stage.update();
     }
 
@@ -459,16 +522,16 @@ var game = (() => {
             if (isGrounded) {
                 var direction = new Vector3(0, 0, 0);
                 if (keyboardControls.moveForward) {
-                    velocity.z -= 400.0 * delta;
+                    velocity.z -= 700.0 * delta;
                 }
                 if (keyboardControls.moveLeft) {
-                    velocity.x -= 400.0 * delta;
+                    velocity.x -= 700.0 * delta;
                 }
                 if (keyboardControls.moveBackward) {
-                    velocity.z += 400.0 * delta;
+                    velocity.z += 700.0 * delta;
                 }
                 if (keyboardControls.moveRight) {
-                    velocity.x += 400.0 * delta;
+                    velocity.x += 700.0 * delta;
                 }
                 if (keyboardControls.jump) {
                     velocity.y += 4000.0 * delta;
@@ -508,10 +571,10 @@ var game = (() => {
         var zenith: number = THREE.Math.degToRad(90);
         var nadir: number = THREE.Math.degToRad(-90);
 
-        var cameraPitch: number = camera.rotation.x + mouseControls.pitch;
+     //   var cameraPitch: number = camera.rotation.x + mouseControls.pitch;
 
         // Constrain the Camera Pitch
-        camera.rotation.x = THREE.Math.clamp(cameraPitch, nadir, zenith);
+      //  camera.rotation.x = THREE.Math.clamp(cameraPitch, nadir, zenith);
 
     }
 
@@ -528,8 +591,8 @@ var game = (() => {
     // Setup main camera for the scene
     function setupCamera(): void {
         camera = new PerspectiveCamera(35, config.Screen.RATIO, 0.1, 100);
-        //camera.position.set(0, 10, 30);
-        //camera.lookAt(new Vector3(0, 0, 0));
+        camera.position.set(0, 20, 50);
+        camera.lookAt(new Vector3(0, 0, 0));
         console.log("Finished setting up Camera...");
     }
 

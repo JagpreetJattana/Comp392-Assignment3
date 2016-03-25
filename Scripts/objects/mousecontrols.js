@@ -16,8 +16,7 @@ var objects;
             this.pitch = -event.movementY * this.sensitivity * 0.1;
         };
         return MouseControls;
-    }());
+    })();
     objects.MouseControls = MouseControls;
 })(objects || (objects = {}));
-
 //# sourceMappingURL=mousecontrols.js.map
